@@ -133,12 +133,31 @@ app.post("/status", async (req, res) => {
 
         await db.collection("participants").updateOne({ _id: new ObjectId(id) }, { $set: newUser});
 
-        res.sendStatus(201);
-        
+        res.sendStatus(200);
+
     } catch (err) {
         res.status(500).send(err.message)
     }
 });
+
+async function intervalFunc() {
+    try{
+        const listaUsuarios = await db.collection("participants").find().toArray();
+
+        const usuariosInativos = listaUsuarios.filter((user) => (Date.now()-user.lastStatus)>10000);
+
+        usuariosInativos.forEach( async user => {
+            await db.collection("messages").insertOne({ from: user.name, to: "Todos", 
+                text:"sai da sala...", type:"status", time: dayjs().format('HH:mm:ss') })
+            await db.collection("participants").deleteOne({ _id: user._id });
+        })
+
+    }catch(err){
+        console.log(err)
+    }
+}
+  
+setInterval(intervalFunc, 15000);
 
 const PORT = 5000;
 app.listen(PORT, () => console.log(`Rodando servidor na porta ${PORT}`));

@@ -60,7 +60,7 @@ app.get("/participants", async (req, res) => {
     }
 })
 
-app.post("/messages",async (req, res) => {
+app.post("/messages", async (req, res) => {
     const { to, text, type } = req.body;
     const user = req.headers.user;
 
@@ -104,7 +104,7 @@ app.get("/messages", async (req, res) => {
 
     try {
         const mensagensDisponiveis = await db.collection("messages").
-            find({ $or: [ {type: "status"}, {to: user}, {from: user} ]}).toArray();
+            find({ $or: [ {type: "status"}, {to: "Todos"}, {to: user}, {from: user} ]}).toArray();
         if(limit){
             const mensagensExibidas = mensagensDisponiveis.slice(-Number(limit));
             return res.send(mensagensExibidas);
@@ -115,8 +115,29 @@ app.get("/messages", async (req, res) => {
     }
 });
 
-app.post("/status", (req, res) => {
-    res.send("OK");
+app.post("/status", async (req, res) => {
+    const user = req.headers.user;
+
+    if(!user){
+        return res.sendStatus(404);
+    }
+
+    try {
+        const userUpdate = await db.collection("participants").findOne({ name: user })
+        if (!userUpdate) {
+            return res.sendStatus(404);
+        }
+
+        const id = userUpdate._id;
+        const newUser = {name: user, lastStatus: Date.now()};
+
+        await db.collection("participants").updateOne({ _id: new ObjectId(id) }, { $set: newUser});
+
+        res.sendStatus(201);
+        
+    } catch (err) {
+        res.status(500).send(err.message)
+    }
 });
 
 const PORT = 5000;

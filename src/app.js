@@ -21,10 +21,6 @@ try {
 }
 const db = mongoClient.db()
 
-//PARTICIPANTE
-// {name: 'João', lastStatus: 12313123} // 
-//MENSAGEM
-//{from: 'João', to: 'Todos', text: 'oi galera', type: 'message', time: '20:04:37'}
 
 app.post("/participants", async (req, res) => {
     const { name } = req.body;
@@ -66,7 +62,7 @@ app.get("/participants", async (req, res) => {
 
 app.post("/messages",async (req, res) => {
     const { to, text, type } = req.body;
-    const from = req.headers.user;
+    const { user } = req.headers.user;
 
     const messageSchema = joi.object({
         to:joi.string().min(1).required(),
@@ -82,9 +78,9 @@ app.post("/messages",async (req, res) => {
     }
 
     try {
-        const user = await db.collection("participants").findOne({ name: from });
-        if (user) {
-            const newMessage = {from, to, text, type, time: dayjs().format('HH:mm:ss')};
+        const userAvailable = await db.collection("participants").findOne({ name: user });
+        if (userAvailable) {
+            const newMessage = {from: user, to, text, type, time: dayjs().format('HH:mm:ss')};
             await db.collection("messages").insertOne(newMessage);
             return res.sendStatus(201);
         }
@@ -96,8 +92,27 @@ app.post("/messages",async (req, res) => {
     }
 });
 
-app.get("/messages", (req, res) => {
-    res.send("OK");
+app.get("/messages", async (req, res) => {
+    const { user } = req.headers.user;
+    const { limit } = req.query;
+
+    if(limit){
+        if(Number(limit)<= 0 || isNaN(Number(limit))){
+            return res.sendStatus(422);
+        }
+    }
+
+    try {
+        const mensagensDisponiveis = await db.collection("messages").
+            find({ $or: [ {type: "status"}, {to: user}, {from: user} ]}).toArray();
+        if(limit){
+            const mensagensExibidas = mensagensDisponiveis.slice(-Number(limit));
+            return res.send(mensagensExibidas);
+        }
+        return res.send(mensagensDisponiveis);
+    } catch (err) {
+        res.status(500).send(err.message);
+    }
 });
 
 app.post("/status", (req, res) => {

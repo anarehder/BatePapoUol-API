@@ -62,7 +62,7 @@ app.get("/participants", async (req, res) => {
 
 app.post("/messages",async (req, res) => {
     const { to, text, type } = req.body;
-    const { user } = req.headers.user;
+    const user = req.headers.user;
 
     const messageSchema = joi.object({
         to:joi.string().min(1).required(),
@@ -93,7 +93,7 @@ app.post("/messages",async (req, res) => {
 });
 
 app.get("/messages", async (req, res) => {
-    const { user } = req.headers.user;
+    const user = req.headers.user;
     const { limit } = req.query;
 
     if(limit){

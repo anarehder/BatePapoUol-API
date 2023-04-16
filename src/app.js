@@ -134,7 +134,7 @@ app.post("/status", async (req, res) => {
         await db.collection("participants").updateOne({ _id: new ObjectId(id) }, { $set: newUser});
 
         res.sendStatus(200);
-
+        
     } catch (err) {
         res.status(500).send(err.message)
     }
